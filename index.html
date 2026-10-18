@@ -1,0 +1,655 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#080d24">
+  <link rel="icon" href="data:,">
+  <title>별별 우주 퀴즈</title>
+  <style>
+    :root {
+      color-scheme: dark light;
+      --bg: #080d24;
+      --surface: #111a38;
+      --surface-raised: #192448;
+      --text: #f4f6ff;
+      --muted: #b7c2e8;
+      --accent: #a78bfa;
+      --accent-strong: #8b5cf6;
+      --border: #35436d;
+      --success: #34d399;
+      --success-bg: #0c392f;
+      --error: #fb7185;
+      --error-bg: #451c31;
+      --focus: #facc15;
+      --shadow: 0 24px 70px rgb(0 0 0 / 30%);
+    }
+
+    @media (prefers-color-scheme: light) {
+      :root {
+        color-scheme: light;
+        --bg: #f1f2ff;
+        --surface: #fff;
+        --surface-raised: #f4f3ff;
+        --text: #17152f;
+        --muted: #535b79;
+        --accent: #6d3ee8;
+        --accent-strong: #5427c8;
+        --border: #d6d8ed;
+        --success: #087d56;
+        --success-bg: #dff8eb;
+        --error: #bd3154;
+        --error-bg: #ffe5eb;
+        --focus: #a05b00;
+        --shadow: 0 24px 70px rgb(44 40 90 / 12%);
+      }
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+
+    html { min-width: 320px; }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      display: grid;
+      place-items: center;
+      padding: 28px 18px;
+      overflow-x: hidden;
+      color: var(--text);
+      background:
+        radial-gradient(ellipse at 15% 12%, rgb(111 82 210 / 22%), transparent 35%),
+        radial-gradient(ellipse at 90% 85%, rgb(31 160 190 / 14%), transparent 32%),
+        var(--bg);
+      font-family: ui-rounded, "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+      line-height: 1.55;
+    }
+
+    button { font: inherit; }
+
+    .stars, .stars::before, .stars::after {
+      position: fixed;
+      z-index: -1;
+      inset: 0;
+      pointer-events: none;
+      content: "";
+      background-image:
+        radial-gradient(2px 2px at 22px 31px, rgb(255 255 255 / 80%) 50%, transparent 100%),
+        radial-gradient(1px 1px at 73px 91px, rgb(255 255 255 / 70%) 50%, transparent 100%),
+        radial-gradient(1px 1px at 142px 57px, rgb(255 255 255 / 75%) 50%, transparent 100%);
+      background-size: 190px 150px;
+      opacity: .48;
+      animation: twinkle 5s ease-in-out infinite alternate;
+    }
+
+    .stars::before { transform: translate(83px, 42px); opacity: .42; animation-delay: -2s; }
+    .stars::after { transform: translate(-45px, 100px); opacity: .3; animation-delay: -3.5s; }
+
+    .app {
+      width: min(100%, 760px);
+      position: relative;
+      padding: clamp(22px, 5vw, 48px);
+      border: 1px solid var(--border);
+      border-radius: 28px;
+      background: color-mix(in srgb, var(--surface) 94%, transparent);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(14px);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      margin: 0 0 24px;
+      color: var(--muted);
+      font-size: .9rem;
+      font-weight: 750;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+
+    .brand-icon { font-size: 1.4rem; }
+
+    h1, h2, p { margin-top: 0; }
+    h1, h2 { line-height: 1.2; }
+
+    .screen { animation: appear .4s ease both; }
+    .screen[hidden] { display: none; }
+
+    .intro, .results { text-align: center; }
+
+    .hero-planet {
+      display: grid;
+      width: 112px;
+      height: 112px;
+      margin: 4px auto 20px;
+      place-items: center;
+      border: 1px solid rgb(255 255 255 / 20%);
+      border-radius: 50%;
+      background: radial-gradient(circle at 32% 27%, #f8d78d 0 9%, #f08a74 10% 35%, #8c5ad4 68%, #392b89 100%);
+      box-shadow: 0 0 42px rgb(167 139 250 / 34%);
+      font-size: 3rem;
+      animation: float 4s ease-in-out infinite;
+    }
+
+    .eyebrow {
+      margin-bottom: 10px;
+      color: var(--accent);
+      font-size: .78rem;
+      font-weight: 800;
+      letter-spacing: .16em;
+    }
+
+    h1 { margin-bottom: 14px; font-size: clamp(2rem, 6vw, 3.35rem); letter-spacing: -.04em; }
+    h2 { margin-bottom: 0; font-size: clamp(1.25rem, 3.5vw, 1.8rem); }
+
+    .lead {
+      max-width: 510px;
+      margin: 0 auto 26px;
+      color: var(--muted);
+      font-size: 1.04rem;
+    }
+
+    .pill-row {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 9px;
+      margin: 0 0 28px;
+    }
+
+    .pill {
+      padding: 7px 12px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      color: var(--muted);
+      background: var(--surface-raised);
+      font-size: .85rem;
+    }
+
+    .primary-button {
+      min-height: 52px;
+      padding: 12px 24px;
+      border: 0;
+      border-radius: 15px;
+      color: #fff;
+      background: linear-gradient(110deg, var(--accent-strong), #c026d3);
+      box-shadow: 0 8px 24px rgb(139 92 246 / 28%);
+      font-weight: 800;
+      cursor: pointer;
+      transition: transform .18s ease, filter .18s ease;
+    }
+
+    .primary-button:hover { transform: translateY(-2px); filter: brightness(1.1); }
+    .primary-button:active { transform: translateY(0); }
+    :focus-visible { outline: 3px solid var(--focus); outline-offset: 4px; }
+
+    .quiz-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .question-count {
+      margin: 0;
+      color: var(--muted);
+      font-weight: 750;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .score {
+      padding: 7px 12px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      color: var(--text);
+      background: var(--surface-raised);
+      font-size: .9rem;
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .progress-track {
+      height: 10px;
+      margin-bottom: 30px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: var(--surface-raised);
+    }
+
+    .progress-fill {
+      width: 0;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, #38bdf8, #a78bfa, #f472b6);
+      transition: width .45s cubic-bezier(.2, .8, .2, 1);
+    }
+
+    .question-card {
+      padding: clamp(20px, 4vw, 30px);
+      border: 1px solid var(--border);
+      border-radius: 22px;
+      background: var(--surface-raised);
+      transition: background-color .25s ease, border-color .25s ease;
+    }
+
+    .question-card.correct { border-color: var(--success); background: var(--success-bg); animation: pop .38s ease; }
+    .question-card.incorrect { border-color: var(--error); background: var(--error-bg); animation: shake .42s ease; }
+
+    .question-icon {
+      margin-bottom: 10px;
+      font-size: 1.35rem;
+    }
+
+    .answers {
+      display: grid;
+      gap: 11px;
+      margin-top: 24px;
+    }
+
+    .answer {
+      width: 100%;
+      min-height: 58px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 11px 15px;
+      border: 1px solid var(--border);
+      border-radius: 15px;
+      color: var(--text);
+      background: var(--surface);
+      text-align: left;
+      cursor: pointer;
+      transition: transform .18s ease, border-color .18s ease, background-color .18s ease;
+    }
+
+    .answer:hover:not(:disabled) {
+      transform: translateX(3px);
+      border-color: var(--accent);
+      background: var(--surface-raised);
+    }
+
+    .answer:disabled { cursor: default; opacity: 1; }
+    .answer.is-right { border-color: var(--success); background: var(--success-bg); }
+    .answer.is-wrong { border-color: var(--error); background: var(--error-bg); }
+
+    .answer-key {
+      flex: 0 0 32px;
+      display: grid;
+      width: 32px;
+      height: 32px;
+      place-items: center;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--muted);
+      font-size: .84rem;
+      font-weight: 800;
+    }
+
+    .answer-copy { flex: 1; }
+    .answer-mark { font-size: 1.15rem; }
+
+    .feedback {
+      min-height: 30px;
+      margin: 16px 0 0;
+      color: var(--muted);
+      font-weight: 750;
+    }
+
+    .feedback.good { color: var(--success); }
+    .feedback.bad { color: var(--error); }
+
+    .quiz-bottom {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-top: 18px;
+      color: var(--muted);
+      font-size: .83rem;
+    }
+
+    .next-button { min-height: 46px; padding: 9px 18px; }
+
+    .result-emoji {
+      display: block;
+      margin: 4px 0 10px;
+      font-size: clamp(6rem, 24vw, 10rem);
+      line-height: 1.1;
+      filter: drop-shadow(0 0 24px rgb(167 139 250 / 48%));
+      animation: emoji-arrive .9s cubic-bezier(.2, 1.5, .5, 1) both;
+    }
+
+    .result-score {
+      margin: 12px 0;
+      font-size: clamp(2.8rem, 12vw, 5rem);
+      font-weight: 900;
+      letter-spacing: -.05em;
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .result-score span { color: var(--accent); }
+
+    .result-message {
+      max-width: 490px;
+      margin: 14px auto 26px;
+      color: var(--muted);
+      font-size: 1.05rem;
+    }
+
+    .result-stars { margin: 0 0 24px; font-size: 1.7rem; letter-spacing: .15em; }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    @keyframes twinkle { to { opacity: .72; } }
+    @keyframes float { 50% { transform: translateY(-8px) rotate(5deg); } }
+    @keyframes appear { from { opacity: 0; transform: translateY(9px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes pop { 50% { transform: scale(1.035); } }
+    @keyframes emoji-arrive {
+      0% { opacity: 0; transform: scale(.25) rotate(-20deg); }
+      65% { opacity: 1; transform: scale(1.18) rotate(8deg); }
+      100% { opacity: 1; transform: scale(1) rotate(0); }
+    }
+    @keyframes shake { 20%, 60% { transform: translateX(-7px); } 40%, 80% { transform: translateX(7px); } }
+
+    @media (max-width: 520px) {
+      body { padding: 14px 10px; }
+      .app { border-radius: 22px; }
+      .quiz-bottom { align-items: flex-start; }
+      .quiz-bottom span { max-width: 52%; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        scroll-behavior: auto !important;
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: .01ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="stars" aria-hidden="true"></div>
+  <main class="app" id="main">
+    <p class="brand"><span class="brand-icon" aria-hidden="true">✦</span> COSMIC QUIZ <span class="brand-icon" aria-hidden="true">✦</span></p>
+
+    <section class="screen intro" id="intro" aria-labelledby="intro-title">
+      <div class="hero-planet" aria-hidden="true">🚀</div>
+      <p class="eyebrow">우주 탐사 미션</p>
+      <h1 id="intro-title">별별 우주 퀴즈</h1>
+      <p class="lead">태양계를 넘어 우주의 신비를 탐험할 준비가 되었나요? 열 개의 질문에 답하고 우주 지식을 확인해 보세요!</p>
+      <div class="pill-row" aria-label="퀴즈 안내">
+        <span class="pill">🌠 10개 문항</span>
+        <span class="pill">🪐 4지선다</span>
+        <span class="pill">⌨️ 키보드 지원</span>
+      </div>
+      <button class="primary-button" id="start-button" type="button">미션 시작하기 <span aria-hidden="true">→</span></button>
+    </section>
+
+    <section class="screen" id="quiz" aria-labelledby="question-title" hidden>
+      <div class="quiz-top">
+        <p class="question-count" id="question-count">1 / 10 문항</p>
+        <p class="score" id="score">⭐ 점수 <span id="score-value">0</span></p>
+      </div>
+      <div
+        class="progress-track"
+        id="progress-track"
+        role="progressbar"
+        aria-label="퀴즈 진행률"
+        aria-valuemin="0"
+        aria-valuemax="10"
+        aria-valuenow="0"
+        aria-valuetext="10문항 중 0문항 완료"
+      ><div class="progress-fill" id="progress-fill"></div></div>
+      <div class="question-card" id="question-card">
+        <div class="question-icon" id="question-icon" aria-hidden="true">🌌</div>
+        <h2 id="question-title" tabindex="-1"></h2>
+        <div class="answers" id="answers" role="group" aria-labelledby="question-title"></div>
+        <p class="feedback" id="feedback" role="status" aria-live="polite" aria-atomic="true"></p>
+      </div>
+      <div class="quiz-bottom">
+        <span>키보드의 <strong>1–4</strong> 키로 답을 고를 수 있어요.</span>
+        <button class="primary-button next-button" id="next-button" type="button" hidden>다음 문항 <span aria-hidden="true">→</span></button>
+      </div>
+    </section>
+
+    <section class="screen results" id="results" aria-labelledby="result-title" hidden>
+      <p class="eyebrow">미션 완료</p>
+      <span class="result-emoji" id="result-emoji" aria-hidden="true">🌟</span>
+      <h1 id="result-title" tabindex="-1">멋진 탐험이었어요!</h1>
+      <p class="result-score"><span id="final-score">0</span><span aria-hidden="true"> / </span><span class="sr-only">총 10점 중 </span><span>10</span><span class="sr-only">점</span></p>
+      <p class="result-message" id="result-message"></p>
+      <p class="result-stars" id="result-stars" aria-hidden="true">✨ 🌙 ✨</p>
+      <button class="primary-button" id="restart-button" type="button">다시 탐험하기 <span aria-hidden="true">↻</span></button>
+    </section>
+    <p class="sr-only" id="keyboard-help">문항이 시작되면 숫자 1부터 4까지의 키를 눌러 답을 고르세요. 답을 선택한 뒤 Enter 키를 눌러 다음 문항으로 이동할 수 있습니다.</p>
+  </main>
+
+  <script>
+    (() => {
+      "use strict";
+
+      const questions = [
+        { icon: "☀️", question: "태양계에서 가장 큰 행성은 무엇일까요?", answers: ["토성", "목성", "해왕성", "지구"], correct: 1, fact: "목성은 다른 모든 행성을 합친 것보다도 질량이 큰 거대한 가스 행성이에요." },
+        { icon: "🔴", question: "붉은빛을 띠어 '붉은 행성'이라고 불리는 행성은?", answers: ["금성", "수성", "화성", "천왕성"], correct: 2, fact: "화성 표면의 산화철, 즉 녹 성분이 붉은색을 만들어 내요." },
+        { icon: "🌙", question: "지구의 자연 위성은 몇 개일까요?", answers: ["1개", "2개", "4개", "위성이 없어요"], correct: 0, fact: "지구의 자연 위성은 달 하나예요. 인공위성과는 구분한답니다." },
+        { icon: "💍", question: "아름다운 고리로 가장 잘 알려진 행성은?", answers: ["화성", "지구", "목성", "토성"], correct: 3, fact: "토성의 고리는 얼음과 암석 조각으로 이루어져 있어요." },
+        { icon: "🌡️", question: "태양계에서 평균 표면 온도가 가장 높은 행성은?", answers: ["수성", "금성", "화성", "목성"], correct: 1, fact: "금성은 두꺼운 대기의 온실 효과 때문에 태양에 더 가까운 수성보다 뜨거워요." },
+        { icon: "🌟", question: "태양은 어떤 천체에 해당할까요?", answers: ["행성", "혜성", "항성", "위성"], correct: 2, fact: "태양은 스스로 빛과 열을 내는 별, 즉 항성이에요." },
+        { icon: "🌌", question: "우리 태양계가 속해 있는 은하의 이름은?", answers: ["안드로메다 은하", "솜브레로 은하", "삼각형자리 은하", "우리은하"], correct: 3, fact: "우리 태양계는 수천억 개의 별이 모인 우리은하의 한 부분이에요." },
+        { icon: "🛰️", question: "지구 주위를 돌며 기상 정보를 보내는 것은?", answers: ["인공위성", "소행성", "유성", "성운"], correct: 0, fact: "인공위성은 지구 궤도를 돌며 날씨 관측과 통신 등 다양한 일을 해요." },
+        { icon: "🌠", question: "우주에서 지구 대기로 들어오며 빛나는 작은 천체는?", answers: ["블랙홀", "유성", "행성", "위성"], correct: 1, fact: "우주 먼지가 대기와 마찰하며 빛나는 현상을 유성이라고 해요. 흔히 별똥별이라고 부르죠." },
+        { icon: "🚀", question: "우주에서 우주비행사가 둥둥 떠 있는 것처럼 보이는 까닭은?", answers: ["우주에는 중력이 전혀 없어서", "우주복이 가벼워서", "우주선과 함께 계속 자유 낙하해서", "달이 끌어당겨서"], correct: 2, fact: "우주정거장과 우주비행사는 지구 중력의 영향 아래 함께 자유 낙하하고 있어요." }
+      ];
+
+      const intro = document.getElementById("intro");
+      const quiz = document.getElementById("quiz");
+      const results = document.getElementById("results");
+      const startButton = document.getElementById("start-button");
+      const restartButton = document.getElementById("restart-button");
+      const questionCount = document.getElementById("question-count");
+      const scoreValue = document.getElementById("score-value");
+      const progressTrack = document.getElementById("progress-track");
+      const progressFill = document.getElementById("progress-fill");
+      const questionCard = document.getElementById("question-card");
+      const questionIcon = document.getElementById("question-icon");
+      const questionTitle = document.getElementById("question-title");
+      const answersContainer = document.getElementById("answers");
+      const feedback = document.getElementById("feedback");
+      const nextButton = document.getElementById("next-button");
+      const finalScore = document.getElementById("final-score");
+      const resultEmoji = document.getElementById("result-emoji");
+      const resultMessage = document.getElementById("result-message");
+      const resultStars = document.getElementById("result-stars");
+
+      let currentQuestion = 0;
+      let score = 0;
+      let answered = false;
+
+      function showScreen(screen) {
+        [intro, quiz, results].forEach((item) => { item.hidden = item !== screen; });
+      }
+
+      function updateProgress(completed) {
+        const percent = (completed / questions.length) * 100;
+        progressFill.style.width = `${percent}%`;
+        progressTrack.setAttribute("aria-valuenow", String(completed));
+        progressTrack.setAttribute("aria-valuetext", `10문항 중 ${completed}문항 완료`);
+      }
+
+      function renderQuestion() {
+        const item = questions[currentQuestion];
+        answered = false;
+        questionCount.textContent = `${currentQuestion + 1} / ${questions.length} 문항`;
+        scoreValue.textContent = String(score);
+        questionIcon.textContent = item.icon;
+        questionTitle.textContent = item.question;
+        questionCard.classList.remove("correct", "incorrect");
+        feedback.textContent = "";
+        feedback.className = "feedback";
+        nextButton.hidden = true;
+        nextButton.textContent = currentQuestion === questions.length - 1 ? "결과 보기 ✨" : "다음 문항 →";
+        answersContainer.replaceChildren();
+
+        item.answers.forEach((answer, index) => {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "answer";
+          button.dataset.answer = String(index);
+          button.setAttribute("aria-label", `${index + 1}번: ${answer}`);
+
+          const key = document.createElement("span");
+          key.className = "answer-key";
+          key.setAttribute("aria-hidden", "true");
+          key.textContent = String(index + 1);
+
+          const copy = document.createElement("span");
+          copy.className = "answer-copy";
+          copy.textContent = answer;
+
+          const mark = document.createElement("span");
+          mark.className = "answer-mark";
+          mark.setAttribute("aria-hidden", "true");
+          button.append(key, copy, mark);
+          button.addEventListener("click", () => chooseAnswer(index));
+          answersContainer.append(button);
+        });
+
+        requestAnimationFrame(() => questionTitle.focus());
+      }
+
+      function chooseAnswer(selected) {
+        if (answered) return;
+        answered = true;
+        const item = questions[currentQuestion];
+        const isCorrect = selected === item.correct;
+        const buttons = [...answersContainer.querySelectorAll(".answer")];
+
+        buttons.forEach((button, index) => {
+          button.disabled = true;
+          if (index === item.correct) {
+            button.classList.add("is-right");
+            button.querySelector(".answer-mark").textContent = "✓";
+          } else if (index === selected) {
+            button.classList.add("is-wrong");
+            button.querySelector(".answer-mark").textContent = "×";
+          }
+        });
+
+        if (isCorrect) {
+          score += 1;
+          questionCard.classList.add("correct");
+          feedback.classList.add("good");
+          feedback.textContent = `정답이에요! 🎉 ${item.fact}`;
+        } else {
+          questionCard.classList.add("incorrect");
+          feedback.classList.add("bad");
+          feedback.textContent = `아쉬워요! 정답은 '${item.answers[item.correct]}'이에요. ${item.fact}`;
+        }
+
+        scoreValue.textContent = String(score);
+        updateProgress(currentQuestion + 1);
+        nextButton.hidden = false;
+        nextButton.focus();
+      }
+
+      function showResults() {
+        showScreen(results);
+        animateFinalScore(score);
+        const percentage = score / questions.length;
+
+        if (percentage === 1) {
+          resultEmoji.textContent = "🏆";
+          resultMessage.textContent = "완벽한 탐험이었어요! 우주의 비밀을 꿰뚫는 진정한 우주 탐험가네요!";
+          resultStars.textContent = "🌟 🚀 🌟";
+        } else if (percentage >= 0.7) {
+          resultEmoji.textContent = "🪐";
+          resultMessage.textContent = "대단해요! 우주 지식이 아주 풍부하네요. 멋진 탐험이었어요!";
+          resultStars.textContent = "✨ 🌙 ✨";
+        } else if (percentage >= 0.4) {
+          resultEmoji.textContent = "🌙";
+          resultMessage.textContent = "좋은 출발이에요! 하나씩 알아 가면 다음엔 더 높은 점수를 얻을 수 있어요.";
+          resultStars.textContent = "⭐ 🌌 ⭐";
+        } else {
+          resultEmoji.textContent = "🔭";
+          resultMessage.textContent = "탐험은 이제부터예요! 다시 도전하며 새로운 우주 지식을 발견해 보세요.";
+          resultStars.textContent = "🌠 🪐 🌠";
+        }
+
+        document.getElementById("result-title").focus();
+      }
+
+      function animateFinalScore(target) {
+        if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+          finalScore.textContent = String(target);
+          return;
+        }
+
+        const duration = 1100;
+        const start = performance.now();
+        finalScore.textContent = "0";
+
+        function updateScore(now) {
+          const progress = Math.min((now - start) / duration, 1);
+          const easedProgress = 1 - (1 - progress) ** 3;
+          finalScore.textContent = String(Math.round(target * easedProgress));
+          if (progress < 1) requestAnimationFrame(updateScore);
+        }
+
+        requestAnimationFrame(updateScore);
+      }
+
+      function advance() {
+        if (!answered) return;
+        if (currentQuestion === questions.length - 1) {
+          showResults();
+          return;
+        }
+        currentQuestion += 1;
+        renderQuestion();
+      }
+
+      startButton.addEventListener("click", () => {
+        currentQuestion = 0;
+        score = 0;
+        updateProgress(0);
+        showScreen(quiz);
+        renderQuestion();
+      });
+
+      restartButton.addEventListener("click", () => {
+        currentQuestion = 0;
+        score = 0;
+        updateProgress(0);
+        showScreen(quiz);
+        renderQuestion();
+      });
+
+      nextButton.addEventListener("click", advance);
+
+      document.addEventListener("keydown", (event) => {
+        if (quiz.hidden || answered || event.altKey || event.ctrlKey || event.metaKey) return;
+        const digit = Number(event.key);
+        if (digit >= 1 && digit <= 4) {
+          event.preventDefault();
+          chooseAnswer(digit - 1);
+        }
+      });
+    })();
+  </script>
+</body>
+</html>
