@@ -342,6 +342,33 @@
 
     .result-stars { margin: 0 0 24px; font-size: 1.7rem; letter-spacing: .15em; }
 
+    .review { margin: 0 0 26px; text-align: left; }
+    .review h2 { margin: 0 0 14px; font-size: 1.25rem; text-align: center; }
+    .review-list { display: block; margin: 0; padding: 0; list-style: none; }
+    .review-item {
+      margin: 0 0 12px;
+      padding: 16px 18px;
+      border: 1px solid var(--border);
+      border-left: 5px solid var(--error);
+      border-radius: 14px;
+      background: var(--surface-raised);
+    }
+    .review-item h3 { margin: 0 0 10px; font-size: 1.02rem; line-height: 1.5; overflow-wrap: anywhere; }
+    .review-item dl { margin: 0; }
+    .review-item dt { margin-top: 8px; color: var(--muted); font-size: .85rem; font-weight: 700; }
+    .review-item dd { margin: 2px 0 0; overflow-wrap: anywhere; }
+    .review-item .review-wrong { color: var(--error); font-weight: 700; }
+    .review-item .review-right { color: var(--success); font-weight: 700; }
+    .review-perfect {
+      margin: 0;
+      padding: 16px 18px;
+      border: 1px solid var(--success);
+      border-radius: 14px;
+      background: var(--success-bg);
+      text-align: center;
+      font-weight: 700;
+    }
+
     .sr-only {
       position: absolute;
       width: 1px;
@@ -434,6 +461,10 @@
       <p class="result-score"><span id="final-score">0</span><span aria-hidden="true"> / </span><span class="sr-only">총 10점 중 </span><span>10</span><span class="sr-only">점</span></p>
       <p class="result-message" id="result-message"></p>
       <p class="result-stars" id="result-stars" aria-hidden="true">✨ 🌙 ✨</p>
+      <section class="review" id="review" aria-labelledby="review-title">
+        <h2 id="review-title">오답 다시 보기</h2>
+        <div id="review-body"></div>
+      </section>
       <button class="primary-button" id="restart-button" type="button">다시 탐험하기 <span aria-hidden="true">↻</span></button>
     </section>
     <p class="sr-only" id="keyboard-help">문항이 시작되면 숫자 1부터 4까지의 키를 눌러 답을 고르세요. 답을 선택한 뒤 Enter 키를 눌러 다음 문항으로 이동할 수 있습니다.</p>
@@ -479,6 +510,58 @@
       let currentQuestion = 0;
       let score = 0;
       let answered = false;
+      let wrongAnswers = [];
+      const reviewBody = document.getElementById("review-body");
+
+      function resetRun() {
+        currentQuestion = 0;
+        score = 0;
+        wrongAnswers = [];
+        reviewBody.replaceChildren();
+        updateProgress(0);
+        showScreen(quiz);
+        renderQuestion();
+      }
+
+      function renderReview() {
+        reviewBody.replaceChildren();
+
+        if (wrongAnswers.length === 0) {
+          const perfect = document.createElement("p");
+          perfect.className = "review-perfect";
+          perfect.textContent = "🎉 모든 문항을 맞혔어요! 다시 볼 오답이 없어요.";
+          reviewBody.append(perfect);
+          return;
+        }
+
+        const list = document.createElement("ol");
+        list.className = "review-list";
+        wrongAnswers.forEach((item) => {
+          const li = document.createElement("li");
+          li.className = "review-item";
+
+          const heading = document.createElement("h3");
+          heading.textContent = `${item.number}번 문항. ${item.question}`;
+
+          const dl = document.createElement("dl");
+          [
+            ["내가 고른 답", item.selected, "review-wrong"],
+            ["정답", item.correct, "review-right"],
+            ["해설", item.fact, ""]
+          ].forEach(([label, value, cls]) => {
+            const dt = document.createElement("dt");
+            dt.textContent = label;
+            const dd = document.createElement("dd");
+            dd.textContent = value;
+            if (cls) dd.className = cls;
+            dl.append(dt, dd);
+          });
+
+          li.append(heading, dl);
+          list.append(li);
+        });
+        reviewBody.append(list);
+      }
 
       function showScreen(screen) {
         [intro, quiz, results].forEach((item) => { item.hidden = item !== screen; });
@@ -556,6 +639,13 @@
           feedback.classList.add("good");
           feedback.textContent = `정답이에요! 🎉 ${item.fact}`;
         } else {
+          wrongAnswers.push({
+            number: currentQuestion + 1,
+            question: item.question,
+            selected: item.answers[selected],
+            correct: item.answers[item.correct],
+            fact: item.fact
+          });
           questionCard.classList.add("incorrect");
           feedback.classList.add("bad");
           feedback.textContent = `아쉬워요! 정답은 '${item.answers[item.correct]}'이에요. ${item.fact}`;
@@ -569,6 +659,7 @@
 
       function showResults() {
         showScreen(results);
+        renderReview();
         animateFinalScore(score);
         const percentage = score / questions.length;
 
@@ -623,21 +714,8 @@
         renderQuestion();
       }
 
-      startButton.addEventListener("click", () => {
-        currentQuestion = 0;
-        score = 0;
-        updateProgress(0);
-        showScreen(quiz);
-        renderQuestion();
-      });
-
-      restartButton.addEventListener("click", () => {
-        currentQuestion = 0;
-        score = 0;
-        updateProgress(0);
-        showScreen(quiz);
-        renderQuestion();
-      });
+      startButton.addEventListener("click", resetRun);
+      restartButton.addEventListener("click", resetRun);
 
       nextButton.addEventListener("click", advance);
 
