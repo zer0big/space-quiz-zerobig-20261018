@@ -342,6 +342,29 @@
 
     .result-stars { margin: 0 0 24px; font-size: 1.7rem; letter-spacing: .15em; }
 
+    .mission-report {
+      margin-bottom: 26px;
+      padding: 20px;
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      background: var(--surface-raised);
+      text-align: left;
+      overflow-wrap: anywhere;
+    }
+    .mission-report h2 { font-size: 1.25rem; }
+    .mission-summary { margin: 14px 0; white-space: pre-line; }
+    .copy-status { margin: 12px 0 0; color: var(--muted); }
+    .copy-fallback label { display: block; margin: 12px 0 8px; }
+    .copy-fallback textarea {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text);
+      background: var(--surface);
+      font: inherit;
+    }
+
     .review { margin: 0 0 26px; text-align: left; }
     .review h2 { margin: 0 0 14px; font-size: 1.25rem; text-align: center; }
     .review-list { display: block; margin: 0; padding: 0; list-style: none; }
@@ -461,6 +484,16 @@
       <p class="result-score"><span id="final-score">0</span><span aria-hidden="true"> / </span><span class="sr-only">총 10점 중 </span><span>10</span><span class="sr-only">점</span></p>
       <p class="result-message" id="result-message"></p>
       <p class="result-stars" id="result-stars" aria-hidden="true">✨ 🌙 ✨</p>
+      <section class="mission-report" aria-labelledby="mission-report-title">
+        <h2 id="mission-report-title">미션 리포트</h2>
+        <p class="mission-summary" id="mission-summary"></p>
+        <button class="primary-button" id="copy-report-button" type="button">미션 리포트 복사</button>
+        <p class="copy-status" id="copy-status" role="status" aria-live="polite" aria-atomic="true"></p>
+        <div class="copy-fallback" id="copy-fallback" hidden>
+          <label for="copy-report-text">복사할 미션 리포트</label>
+          <textarea id="copy-report-text" rows="6" readonly aria-describedby="copy-status"></textarea>
+        </div>
+      </section>
       <section class="review" id="review" aria-labelledby="review-title">
         <h2 id="review-title">오답 다시 보기</h2>
         <div id="review-body"></div>
@@ -506,17 +539,32 @@
       const resultEmoji = document.getElementById("result-emoji");
       const resultMessage = document.getElementById("result-message");
       const resultStars = document.getElementById("result-stars");
+      const missionSummary = document.getElementById("mission-summary");
+      const copyReportButton = document.getElementById("copy-report-button");
+      const copyStatus = document.getElementById("copy-status");
+      const copyFallback = document.getElementById("copy-fallback");
+      const copyReportText = document.getElementById("copy-report-text");
 
       let currentQuestion = 0;
       let score = 0;
       let answered = false;
       let wrongAnswers = [];
+      let questionStartedAt = 0;
+      let longestQuestion = null;
+      let runId = 0;
       const reviewBody = document.getElementById("review-body");
 
       function resetRun() {
+        runId += 1;
         currentQuestion = 0;
         score = 0;
         wrongAnswers = [];
+        longestQuestion = null;
+        missionSummary.textContent = "";
+        copyStatus.textContent = "";
+        copyFallback.hidden = true;
+        copyReportText.value = "";
+        copyReportButton.disabled = false;
         reviewBody.replaceChildren();
         updateProgress(0);
         showScreen(quiz);
@@ -612,12 +660,17 @@
           answersContainer.append(button);
         });
 
+        questionStartedAt = performance.now();
         requestAnimationFrame(() => questionTitle.focus());
       }
 
       function chooseAnswer(selected) {
         if (answered) return;
         answered = true;
+        const elapsed = performance.now() - questionStartedAt;
+        if (!longestQuestion || elapsed > longestQuestion.elapsed) {
+          longestQuestion = { index: currentQuestion, elapsed };
+        }
         const item = questions[currentQuestion];
         const isCorrect = selected === item.correct;
         const buttons = [...answersContainer.querySelectorAll(".answer")];
@@ -662,26 +715,59 @@
         renderReview();
         animateFinalScore(score);
         const percentage = score / questions.length;
+        let rank;
 
         if (percentage === 1) {
+          rank = "우주 탐험의 전설";
           resultEmoji.textContent = "🏆";
           resultMessage.textContent = "완벽한 탐험이었어요! 우주의 비밀을 꿰뚫는 진정한 우주 탐험가네요!";
           resultStars.textContent = "🌟 🚀 🌟";
         } else if (percentage >= 0.7) {
+          rank = "베테랑 우주 탐험가";
           resultEmoji.textContent = "🪐";
           resultMessage.textContent = "대단해요! 우주 지식이 아주 풍부하네요. 멋진 탐험이었어요!";
           resultStars.textContent = "✨ 🌙 ✨";
         } else if (percentage >= 0.4) {
+          rank = "성장하는 우주 탐험가";
           resultEmoji.textContent = "🌙";
           resultMessage.textContent = "좋은 출발이에요! 하나씩 알아 가면 다음엔 더 높은 점수를 얻을 수 있어요.";
           resultStars.textContent = "⭐ 🌌 ⭐";
         } else {
+          rank = "새싹 우주 탐험가";
           resultEmoji.textContent = "🔭";
           resultMessage.textContent = "탐험은 이제부터예요! 다시 도전하며 새로운 우주 지식을 발견해 보세요.";
           resultStars.textContent = "🌠 🪐 🌠";
         }
 
+        const seconds = (longestQuestion.elapsed / 1000).toFixed(1);
+        missionSummary.textContent = [
+          `🚀 별별 우주 퀴즈 | ${score}/${questions.length}점 · 정답률 ${Math.round(percentage * 100)}%`,
+          `칭호: ${rank}`,
+          `가장 오래 고민한 문항: ${longestQuestion.index + 1}번 (${seconds}초)`,
+          questions[longestQuestion.index].question
+        ].join("\n");
         document.getElementById("result-title").focus();
+      }
+
+      async function copyReport() {
+        const copyingRun = runId;
+        copyReportButton.disabled = true;
+        copyStatus.textContent = "";
+        try {
+          await navigator.clipboard.writeText(missionSummary.textContent);
+          if (copyingRun !== runId) return;
+          copyFallback.hidden = true;
+          copyStatus.textContent = "미션 리포트를 클립보드에 복사했어요!";
+        } catch {
+          if (copyingRun !== runId) return;
+          copyFallback.hidden = false;
+          copyReportText.value = missionSummary.textContent;
+          copyStatus.textContent = "자동 복사를 사용할 수 없어요. 선택된 리포트를 Ctrl+C 또는 Command+C로 복사해 주세요.";
+          copyReportText.focus();
+          copyReportText.select();
+        } finally {
+          if (copyingRun === runId) copyReportButton.disabled = false;
+        }
       }
 
       function animateFinalScore(target) {
@@ -716,6 +802,7 @@
 
       startButton.addEventListener("click", resetRun);
       restartButton.addEventListener("click", resetRun);
+      copyReportButton.addEventListener("click", copyReport);
 
       nextButton.addEventListener("click", advance);
 
